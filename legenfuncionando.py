@@ -96,17 +96,11 @@ args.transcription_model = "large-v3" if args.transcription_model == "large" els
 
 
 def process_media_files(args, whisper_model):
-    folders_completed = set()
     total_files = 0
     processed_files = 0
-    files_in_folder = {}
-
-    # Count total files
     for item in Path(args.input_path).rglob('*'):
         if item.is_file():
             total_files += 1
-            files_in_folder.setdefault(item.parent, 0)
-            files_in_folder[item.parent] += 1
 
     for path in (item for item in sorted(sorted(Path(args.input_path).rglob('*'), key=lambda x: x.stat().st_mtime), key=lambda x: len(x.parts)) if item.is_file()):
         rel_path = path.relative_to(args.input_path)
@@ -266,12 +260,6 @@ def process_media_files(args, whisper_model):
                 with open(Path(Path(getframeinfo(currentframe()).filename).resolve().parent, "legen-errors.txt"), "a") as f:
                     f.write(error_message + "\n")
                     f.close()
-
-        files_in_folder[path.parent] -= 1
-        if files_in_folder[path.parent] == 0:
-            if path.parent not in folders_completed:
-                print(f"\n{green}All files in subfolder {path.parent} processed. Legends and translations complete!{default}")
-                folders_completed.add(path.parent)
 
         if not any(item.is_file() for item in path.parent.rglob('*') if path.parent != args.input_path):
             print(f"\n{green}All files in subfolder {path.parent} processed.{default}")
