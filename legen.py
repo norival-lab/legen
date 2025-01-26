@@ -101,12 +101,15 @@ def process_media_files(args, whisper_model):
     processed_files = 0
     files_in_folder = {}
 
-    # Count total files
+    # Modificar contagem para incluir apenas mídia
     for item in Path(args.input_path).rglob('*'):
         if item.is_file():
-            total_files += 1
-            files_in_folder.setdefault(item.parent, 0)
-            files_in_folder[item.parent] += 1
+            # Verificar se é arquivo de mídia
+            if (item.suffix.lower() in video_extensions or 
+                item.suffix.lower() in audio_extensions):
+                total_files += 1
+                files_in_folder.setdefault(item.parent, 0)
+                files_in_folder[item.parent] += 1
 
     for path in (item for item in sorted(sorted(Path(args.input_path).rglob('*'), key=lambda x: x.stat().st_mtime), key=lambda x: len(x.parts)) if item.is_file()):
         rel_path = path.relative_to(args.input_path)
