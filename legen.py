@@ -38,7 +38,7 @@ time.sleep(1.5)
 
 # Define parameters and configurations
 parser = argparse.ArgumentParser(prog="LeGen", description="Uses AI to locally transcribes speech from media files, generating subtitle files, translates the generated subtitles, inserts them into the mp4 container, and burns them directly into video",
-                                 argument_default=True, allow_abbrev=True, add_help=True, usage='LeGen -i INPUT_PATH [other options]')
+                                argument_default=True, allow_abbrev=True, add_help=True, usage='LeGen -i INPUT_PATH [other options]')
 parser.add_argument("-i", "--input_path",
                     help="Path to media files. Can be a folder containing files or an individual file", required=True, type=Path)
 parser.add_argument("--norm", default=False, action="store_true",
@@ -152,7 +152,7 @@ def process_media_files(args, whisper_model):
                         if args.transcription_engine == 'whisper':
                             audio_language = whisper_utils.detect_language(
                                 whisper_model, audio_short_extracted.getpath())
-                       print(f"{gray}{audio_language}{default}")
+                        print(f"{gray}{audio_language}{default}")
                         audio_short_extracted.destroy()
 
                     else:
@@ -166,10 +166,10 @@ def process_media_files(args, whisper_model):
                     # create temp file for .srt
                     transcribed_srt_temp = file_utils.TempFile(
                         subtitle_transcribed_path, file_ext=".srt")
-                    # skip transcription if transcribed srt for this language is existing (without overwrite neabled) or will not be used in LeGen process
+                    # skip transcription if transcribed srt for this language is existing (without overwrite enabled) or will not be used in LeGen process
 
                     if (file_utils.file_is_valid(subtitle_transcribed_path)) or ((args.disable_hardsubs or file_utils.file_is_valid(hardsub_video_path)) and (args.disable_srt or file_utils.file_is_valid(subtitle_transcribed_path))) and not args.overwrite:
-                       print("Transcription is unnecessary. Skipping.")
+                        print("Transcription is unnecessary. Skipping.")
 
                     else: # transcribe audio
                         # extract audio
@@ -183,8 +183,8 @@ def process_media_files(args, whisper_model):
                             whisperx_utils.transcribe_audio(
                                 whisper_model, audio_extracted.getpath(), transcribed_srt_temp.getpath(), audio_language, device=torch_device, batch_size=args.transcription_batch)
                         if args.transcription_engine == 'whisper':
-                           print(f"{wblue}Transcribing{default} with {gray}Whisper{default}")
-                           whisper_utils.transcribe_audio(
+                            print(f"{wblue}Transcribing{default} with {gray}Whisper{default}")
+                            whisper_utils.transcribe_audio(
                                 model=whisper_model, audio_path=audio_extracted.getpath(), srt_path=transcribed_srt_temp.getpath(), lang=audio_language, disable_fp16=False if transcription_compute_type == "float16" or transcription_compute_type == "fp16" else True)
 
 
@@ -201,7 +201,7 @@ def process_media_files(args, whisper_model):
                     if args.translate == "none":
                         pass  # translation not requested
                     elif args.translate == audio_language:
-                       print("Translation is unnecessary because input and output language are the same. Skipping.")
+                        print("Translation is unnecessary because input and output language are the same. Skipping.")
                     elif (args.disable_hardsubs or file_utils.file_is_valid(hardsub_video_path)) and (args.disable_srt or (file_utils.file_is_valid(subtitle_translated_path) and file_utils.file_is_valid(subtitle_transcribed_path) and file_utils.file_is_valid(subtitle_translated_path))) and not args.overwrite:
                         print("Translation is unnecessary. Skipping.")
                         subtitles_path.insert(0, subtitle_translated_path)
@@ -216,7 +216,7 @@ def process_media_files(args, whisper_model):
                         # translating with google translate public API
                         print(f"{wblue}Translating{default} with {gray}Google Translate{default}")
                         subs = translate_utils.translate_srt_file(
-                           transcribed_srt_temp.getvalidpath(), translated_srt_temp.getpath(), args.translate)
+                            transcribed_srt_temp.getvalidpath(), translated_srt_temp.getpath(), args.translate)
 
                         if not args.disable_srt:
                             translated_srt_temp.save()
@@ -238,7 +238,7 @@ def process_media_files(args, whisper_model):
                             ffmpeg_utils.insert_subtitle(input_media_path=origin_media_path, subtitles_path=subtitles_path,
                                                         burn_subtitles=False, output_video_path=video_softsubs_temp.getpath(),
                                                         codec_video=args.codec_video, codec_audio=args.codec_audio)
-                           video_softsubs_temp.save()
+                            video_softsubs_temp.save()
 
 
 
@@ -290,7 +290,7 @@ def process_media_files(args, whisper_model):
 if args.norm:
     with time_task(message_start=f"Running {wblue}vidqa{default} and updating folder modifiation times in {gray}{args.input_path}{default}", end="\n"):
         subprocess.run(["vidqa", "-i", args.input_path, "-m", "unique", "-fd",
-                       Path(Path(getframeinfo(currentframe()).filename).resolve().parent, "vidqa_data")])
+                    Path(Path(getframeinfo(currentframe()).filename).resolve().parent, "vidqa_data")])
 
         file_utils.update_folder_times(args.input_path)
 
@@ -306,7 +306,7 @@ with time_task(message_start=f"\nLoading {args.transcription_engine} model: {wbl
         import whisper
         import whisper_utils
         whisper_model = whisper.load_model(
-           name=args.transcription_model, device=torch_device, in_memory=True)
+            name=args.transcription_model, device=torch_device, in_memory=True)
 
     else:
         raise ValueError(f'Unsupported transcription engine {args.transcription_engine}. Supported values: whisperx, whisper')
