@@ -107,11 +107,9 @@ def process_media_files(args, whisper_model):
         processed_files += 1
         remaining_files = total_files - processed_files
 
-        # Progress counter - no newline
         print(f"{blue}Processing: {processed_files}/{total_files} - Remaining: {remaining_files}{default}", end=" ")
         
-        # File processing with proper spacing
-        with time_task(message_start=f"Processing {yellow}{rel_path.as_posix()}{default}", end="", message="⌚ Done in"):
+        with time_task(message_start=f"Processing {yellow}{rel_path.as_posix()}{default}", end=" ", message="⌚ Done in"):
             try:
                 # define file type by extensions
                 if path.suffix.lower() in video_extensions:
@@ -263,7 +261,6 @@ def process_media_files(args, whisper_model):
                     f.write(error_message + "\n")
                     f.close()
 
-        # Subfolder completion with proper spacing
         if not any(item.is_file() for item in path.parent.rglob('*') if path.parent != args.input_path):
             print(f"\n{green}All files in subfolder {path.parent} processed.{default}")
 
