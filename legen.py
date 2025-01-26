@@ -107,9 +107,9 @@ def process_media_files(args, whisper_model):
         processed_files += 1
         remaining_files = total_files - processed_files
 
-        print(f"{blue}Processing: {processed_files}/{total_files} - Remaining: {remaining_files}{default}", end=" ")
+        print(f"{blue}Processing: {processed_files}/{total_files} - Remaining: {remaining_files}{default}")
         
-        with time_task(message_start=f"Processing {yellow}{rel_path.as_posix()}{default}", end=" ", message="⌚ Done in"):
+        with time_task(message_start=f"\nProcessing {yellow}{rel_path.as_posix()}{default}\n", end="", message="⌚ Done in "):
             try:
                 # define file type by extensions
                 if path.suffix.lower() in video_extensions:
