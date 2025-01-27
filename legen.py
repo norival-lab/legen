@@ -15,7 +15,7 @@ default = "\033[1;0m"  # Remove 's' suffix
 gray = "\033[1;37m"
 wblue = "\033[1;36m"
 blue = "\033[1;34m"
-yellowc = "\033[1;33m"
+yellow = "\033[1;33m"
 green = "\033[1;32m"
 red = "\033[1;31m"
 
