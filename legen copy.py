@@ -10,7 +10,7 @@ import file_utils
 import translate_utils
 from utils import time_task, audio_extensions, video_extensions, check_other_extensions
 
-version = "v0.17"
+version = "v0.18"
 
 # Terminal colors
 default = "\033[1;0m"
@@ -102,40 +102,26 @@ def process_media_files(args, whisper_model):
     files_in_folder = {}
     completed_at_start = set()
 
-    # Step 1: Improved folder scanning
+    # Step 1: Scan folders and check completion status
     print(f"{gray}Scanning folders...{default}")
     for item in Path(args.input_path).rglob('*'):
         if item.is_file():
             if (item.suffix.lower() in video_extensions or 
                 item.suffix.lower() in audio_extensions):
                 total_files += 1
-                parent = item.parent
-                files_in_folder.setdefault(parent, {'total': 0, 'completed': 0})
-                files_in_folder[parent]['total'] += 1
+                files_in_folder.setdefault(item.parent, 0)
+                files_in_folder[item.parent] += 1
                 
-                # Check if file is already processed
-                rel_path = item.relative_to(args.input_path)
-                if (file_utils.file_is_valid(Path(args.output_softsubs, rel_path.with_suffix('.mp4'))) or 
-                    file_utils.file_is_valid(Path(args.output_hardsubs, rel_path.with_suffix('.mp4')))):
-                    files_in_folder[parent]['completed'] += 1
-                    
-                # Check if folder is complete
-                if files_in_folder[parent]['completed'] == files_in_folder[parent]['total']:
-                    if parent not in completed_at_start:
-                        completed_at_start.add(parent)
-                        print(f"{green}Folder '{parent.name}' already completed!{default}")
+                # Check if folder is already completed
+                if (file_utils.file_is_valid(Path(args.output_softsubs, item.relative_to(args.input_path))) or 
+                    file_utils.file_is_valid(Path(args.output_hardsubs, item.relative_to(args.input_path)))):
+                    if item.parent not in completed_at_start:
+                        completed_at_start.add(item.parent)
+                        print(f"{green}Folder '{item.parent.name}' already completed!{default}")
 
-    # Show folders summary
+    # Show summary of pre-completed folders
     if completed_at_start:
-        print(f"\n{green}Found {len(completed_at_start)} completed folders:{default}")
-        for folder in completed_at_start:
-            print(f"{gray}• {folder.name}{default}")
-        print()
-
-    # Filter out completed folders
-    for folder in completed_at_start:
-        files_in_folder.pop(folder)
-        total_files -= files_in_folder[folder]['total']
+        print(f"\n{green}Found {len(completed_at_start)} already completed folders{default}\n")
 
     # Step 2: Process files
     for path in sorted(Path(args.input_path).rglob("*")):
@@ -342,41 +328,9 @@ with time_task(message_start=f"\nLoading {args.transcription_engine} model: {wbl
         raise ValueError(f'Unsupported transcription engine {args.transcription_engine}. Supported values: whisperx, whisper')
 
 
-# Before main processing, add initial scan
-print(f"\n{gray}Scanning folders for completion status...{default}")
-
-def scan_folders(input_path, output_softsubs, output_hardsubs):
-    completed_folders = {}
-    
-    for folder in Path(input_path).rglob('*'):
-        if folder.is_dir():
-            media_files = [f for f in folder.glob('*') 
-                         if f.suffix.lower() in (video_extensions | audio_extensions)]
-            
-            if not media_files:
-                continue
-                
-            completed = 0
-            for media in media_files:
-                rel_path = media.relative_to(input_path)
-                if (file_utils.file_is_valid(Path(output_softsubs, rel_path.with_suffix('.mp4'))) or 
-                    file_utils.file_is_valid(Path(output_hardsubs, rel_path.with_suffix('.mp4')))):
-                    completed += 1
-            
-            if completed == len(media_files):
-                completed_folders[folder] = len(media_files)
-                print(f"{green}• Folder '{folder.name}' - {completed} files completed{default}")
-    
-    return completed_folders
-
-completed = scan_folders(args.input_path, args.output_softsubs, args.output_hardsubs)
-if completed:
-    print(f"\n{green}Found {len(completed)} completed folders!{default}")
-else:
-    print(f"\n{yellow}No completed folders found.{default}")
-
-with time_task(message="⌛ Processing remaining files for"):
+with time_task(message="⌛ Processing files for"):
     process_media_files(args, whisper_model)
+
 
 print("Deleting temp folder")
 file_utils.delete_folder(
