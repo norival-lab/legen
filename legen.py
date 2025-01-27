@@ -100,24 +100,43 @@ def process_media_files(args, whisper_model):
     total_files = 0
     processed_files = 0
     files_in_folder = {}
+    completed_at_start = set()
 
-    # Modificar contagem para incluir apenas mídia
+    # Step 1: Scan folders and check completion status
+    print(f"{gray}Scanning folders...{default}")
     for item in Path(args.input_path).rglob('*'):
         if item.is_file():
-            # Verificar se é arquivo de mídia
             if (item.suffix.lower() in video_extensions or 
                 item.suffix.lower() in audio_extensions):
                 total_files += 1
                 files_in_folder.setdefault(item.parent, 0)
                 files_in_folder[item.parent] += 1
+                
+                # Check if folder is already completed
+                if (file_utils.file_is_valid(Path(args.output_softsubs, item.relative_to(args.input_path))) or 
+                    file_utils.file_is_valid(Path(args.output_hardsubs, item.relative_to(args.input_path)))):
+                    if item.parent not in completed_at_start:
+                        completed_at_start.add(item.parent)
+                        print(f"{green}Folder '{item.parent.name}' already completed!{default}")
 
-    for path in (item for item in sorted(sorted(Path(args.input_path).rglob('*'), key=lambda x: x.stat().st_mtime), key=lambda x: len(x.parts)) if item.is_file()):
+    # Show summary of pre-completed folders
+    if completed_at_start:
+        print(f"\n{green}Found {len(completed_at_start)} already completed folders{default}\n")
+
+    # Step 2: Process files
+    for path in sorted(Path(args.input_path).rglob("*")):
+        if not path.is_file():
+            continue
+            
+        if not (path.suffix.lower() in video_extensions or 
+                path.suffix.lower() in audio_extensions):
+            continue
+
         rel_path = path.relative_to(args.input_path)
-        processed_files += 1
-        remaining_files = total_files - processed_files
-
-        print(f"{blue}Processing: {processed_files}/{total_files} - Remaining: {remaining_files}{default}")
         
+        print(f"{blue}Processing: {processed_files + 1}/{total_files} - Remaining: {total_files - (processed_files + 1)}{default}")
+        print(f"{gray}Current folder: {path.parent} (Files remaining: {files_in_folder[path.parent]}){default}")
+
         with time_task(message_start=f"Processing {yellow}{rel_path.as_posix()}{default}\n", end="", message="⌚ Done in "):
             try:
                 # define file type by extensions
@@ -270,14 +289,18 @@ def process_media_files(args, whisper_model):
                     f.write(error_message + "\n")
                     f.close()
 
+        # Step 3: Update folder completion tracking
+        processed_files += 1
         files_in_folder[path.parent] -= 1
-        if files_in_folder[path.parent] == 0:
-            if path.parent not in folders_completed:
-                print(f"\n{green}All files in subfolder {path.parent} processed. Legends and translations complete!{default}")
-                folders_completed.add(path.parent)
+        
+        # Check folder completion - simplified message
+        if files_in_folder[path.parent] == 0 and path.parent not in folders_completed:
+            folder_name = path.parent.name  # Get just the folder name
+            print(f"\n{green}Folder '{folder_name}' completed!{default}")
+            folders_completed.add(path.parent)
 
-        if not any(item.is_file() for item in path.parent.rglob('*') if path.parent != args.input_path):
-            print(f"\n{green}All files in subfolder {path.parent} processed.{default}")
+    # Step 4: Final completion check
+    print(f"\n{green}Processed {processed_files}/{total_files} files in {len(folders_completed)} folders{default}")
 
 
 if args.norm:
