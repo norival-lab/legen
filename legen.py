@@ -1,4 +1,5 @@
-import currentframe, getframeinfo
+from inspect import currentframe, getframeinfo
+import time
 from pathlib import Path
 
 import ffmpeg_utils
@@ -338,38 +339,40 @@ def scan_folders(input_path, output_softsubs, output_hardsubs):
                 continue
                 
             total_files = len(media_files)
-            completed = 0
+            processed = 0
             
-            # Check both output locations for each file
             for media in media_files:
                 rel_path = media.relative_to(input_path)
+                
+                # Check for completed files
                 soft_out = Path(output_softsubs, rel_path.with_suffix('.mp4'))
                 hard_out = Path(output_hardsubs, rel_path.with_suffix('.mp4'))
-                srt_out = Path(output_softsubs, rel_path.with_suffix('.srt'))
                 
-                # Consider file completed if either output exists
-                if any([
-                    file_utils.file_is_valid(soft_out),
-                    file_utils.file_is_valid(hard_out),
-                    file_utils.file_is_valid(srt_out)
-                ]):
-                    completed += 1
+                if file_utils.file_is_valid(soft_out) or file_utils.file_is_valid(hard_out):
+                    processed += 1
             
-            # Only show completed folders
-            if completed == total_files and total_files > 0:
+            # Show completed folders
+            if processed == total_files and total_files > 0:
                 completed_folders[folder] = total_files
-                print(f"{green}✓ Folder '{folder.name}' ({completed}/{total_files} files){default}")
+                print(f"{green}✓ Folder '{folder.name}' ({processed}/{total_files} files){default}")
     
     return completed_folders
 
-completed = scan_folders(args.input_path, args.output_softsubs, args.output_hardsubs)
-if completed:
-    print(f"\n{green}Found {len(completed)} completed folders!{default}")
-else:
-    print(f"\n{yellow}No completed folders found.{default}")
-
-with time_task(message="⌛ Processing remaining files for"):
+def main():
+    # Initial scan
+    completed = scan_folders(args.input_path, args.output_softsubs, args.output_hardsubs)
+    if completed:
+        print(f"\n{green}Found {len(completed)} completed folders!{default}")
+        for folder, count in completed.items():
+            print(f"{gray}• {folder.name} ({count} files){default}")
+    else:
+        print(f"\n{yellow}No completed folders found.{default}")
+        
+    # Continue with processing
     process_media_files(args, whisper_model)
+
+if __name__ == "__main__":
+    main()
 
 print("Deleting temp folder")
 file_utils.delete_folder(
