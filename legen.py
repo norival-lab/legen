@@ -102,7 +102,7 @@ def process_media_files(args, whisper_model):
     files_in_folder = {}
     completed_at_start = set()
 
-    # Step 1: Improved folder scanning
+    # Step 1: Folder scanning
     print(f"{gray}Scanning folders...{default}")
     for item in Path(args.input_path).rglob('*'):
         if item.is_file():
@@ -110,34 +110,17 @@ def process_media_files(args, whisper_model):
                 item.suffix.lower() in audio_extensions):
                 total_files += 1
                 parent = item.parent
-                files_in_folder.setdefault(parent, {'total': 0, 'completed': 0})
+                files_in_folder.setdefault(parent, {'total': 0, 'remaining': 0})
                 files_in_folder[parent]['total'] += 1
+                files_in_folder[parent]['remaining'] += 1
                 
-                # Check if file is already processed
+                # Check if already processed
                 rel_path = item.relative_to(args.input_path)
                 if (file_utils.file_is_valid(Path(args.output_softsubs, rel_path.with_suffix('.mp4'))) or 
                     file_utils.file_is_valid(Path(args.output_hardsubs, rel_path.with_suffix('.mp4')))):
-                    files_in_folder[parent]['completed'] += 1
-                    
-                # Check if folder is complete
-                if files_in_folder[parent]['completed'] == files_in_folder[parent]['total']:
-                    if parent not in completed_at_start:
-                        completed_at_start.add(parent)
-                        print(f"{green}Folder '{parent.name}' already completed!{default}")
+                    files_in_folder[parent]['remaining'] -= 1
 
-    # Show folders summary
-    if completed_at_start:
-        print(f"\n{green}Found {len(completed_at_start)} completed folders:{default}")
-        for folder in completed_at_start:
-            print(f"{gray}• {folder.name}{default}")
-        print()
-
-    # Filter out completed folders
-    for folder in completed_at_start:
-        files_in_folder.pop(folder)
-        total_files -= files_in_folder[folder]['total']
-
-    # Step 2: Process files
+    # Process files
     for path in sorted(Path(args.input_path).rglob("*")):
         if not path.is_file():
             continue
@@ -303,17 +286,17 @@ def process_media_files(args, whisper_model):
                     f.write(error_message + "\n")
                     f.close()
 
-        # Step 3: Update folder completion tracking
+        # Update folder tracking
         processed_files += 1
-        files_in_folder[path.parent] -= 1
+        files_in_folder[path.parent]['remaining'] -= 1
         
-        # Check folder completion - simplified message
-        if files_in_folder[path.parent] == 0 and path.parent not in folders_completed:
-            folder_name = path.parent.name  # Get just the folder name
+        # Check folder completion
+        if files_in_folder[path.parent]['remaining'] == 0:
+            folder_name = path.parent.name
             print(f"\n{green}Folder '{folder_name}' completed!{default}")
             folders_completed.add(path.parent)
 
-    # Step 4: Final completion check
+    # Final completion check
     print(f"\n{green}Processed {processed_files}/{total_files} files in {len(folders_completed)} folders{default}")
 
 
