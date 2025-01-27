@@ -10,7 +10,7 @@ import file_utils
 import translate_utils
 from utils import time_task, audio_extensions, video_extensions, check_other_extensions
 
-version = "v0.17"
+version = "v0.18"
 
 # Terminal colors
 default = "\033[1;0m"
