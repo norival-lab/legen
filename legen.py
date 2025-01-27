@@ -9,7 +9,7 @@ from utils import time_task, audio_extensions, video_extensions, check_other_ext
 version = "v0.17"
 
 # Terminal colors
-default = "\033[1;0m"s
+default = "\033[1;0m"  # Remove 's' suffix
 gray = "\033[1;37m"
 wblue = "\033[1;36m"
 blue = "\033[1;34m"
@@ -128,7 +128,7 @@ def process_media_files(args, whisper_model):
         rel_path = path.relative_to(args.input_path)
         
         print(f"{blue}Processing: {processed_files + 1}/{total_files} - Remaining: {total_files - (processed_files + 1)}{default}")
-        print(f"{gray}Current folder: {path.parent} (Files remaining: {files_in_folder[path.parent]}){default}")
+        print(f"{gray}Current folder: {path.parent} (Files remaining: {total_files - (processed_files + 1)}){default}")
 
         with time_task(message_start=f"Processing {yellow}{rel_path.as_posix()}{default}\n", end="", message="⌚ Done in "):
             try:
@@ -327,7 +327,7 @@ print(f"\n{gray}Scanning folders for completion status...{default}")
 def scan_folders(input_path, output_softsubs, output_hardsubs):
     completed_folders = {}
     
-    print(f"{gray}Checking folders in: {input_path}{default}")
+    print(f"{gray}Scanning folders for completion...{default}")
     
     for folder in Path(input_path).rglob('*'):
         if folder.is_dir():
@@ -340,21 +340,25 @@ def scan_folders(input_path, output_softsubs, output_hardsubs):
             total_files = len(media_files)
             completed = 0
             
-            print(f"{gray}Checking folder: {folder.name} ({total_files} files){default}")
-            
+            # Check both output locations for each file
             for media in media_files:
                 rel_path = media.relative_to(input_path)
-                output_soft = Path(output_softsubs, rel_path.with_suffix('.mp4'))
-                output_hard = Path(output_hardsubs, rel_path.with_suffix('.mp4'))
+                soft_out = Path(output_softsubs, rel_path.with_suffix('.mp4'))
+                hard_out = Path(output_hardsubs, rel_path.with_suffix('.mp4'))
+                srt_out = Path(output_softsubs, rel_path.with_suffix('.srt'))
                 
-                if file_utils.file_is_valid(output_soft) or file_utils.file_is_valid(output_hard):
+                # Consider file completed if either output exists
+                if any([
+                    file_utils.file_is_valid(soft_out),
+                    file_utils.file_is_valid(hard_out),
+                    file_utils.file_is_valid(srt_out)
+                ]):
                     completed += 1
-                    
-            print(f"{gray}Folder {folder.name}: {completed}/{total_files} completed{default}")
             
-            if completed == total_files and completed > 0:
+            # Only show completed folders
+            if completed == total_files and total_files > 0:
                 completed_folders[folder] = total_files
-                print(f"{green}• Folder '{folder.name}' - {completed} files completed{default}")
+                print(f"{green}✓ Folder '{folder.name}' ({completed}/{total_files} files){default}")
     
     return completed_folders
 
