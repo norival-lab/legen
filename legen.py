@@ -1,8 +1,4 @@
-import argparse
-import os
-import subprocess
-import time
-from inspect import currentframe, getframeinfo
+import currentframe, getframeinfo
 from pathlib import Path
 
 import ffmpeg_utils
@@ -13,20 +9,20 @@ from utils import time_task, audio_extensions, video_extensions, check_other_ext
 version = "v0.17"
 
 # Terminal colors
-default = "\033[1;0m"
+default = "\033[1;0m"s
 gray = "\033[1;37m"
 wblue = "\033[1;36m"
 blue = "\033[1;34m"
-yellow = "\033[1;33m"
+yellowc = "\033[1;33m"
 green = "\033[1;32m"
 red = "\033[1;31m"
 
 print(f"""
 {blue}888              {gray} .d8888b.                   
 {blue}888              {gray}d88P  Y88b                  
-{blue}888              {gray}888    888                  
+{blue}888              {gray}888    888a                  
 {blue}888      .d88b.  {gray}888         .d88b.  88888b. 
-{blue}888     d8P  Y8b {gray}888  88888 d8P  Y8b 888 "88b
+{blue}888     d8P  Y8b {gray}888  88888 d8P  Y8bn 888 "88b
 {blue}888     88888888 {gray}888    888 88888888 888  888
 {blue}888     Y8b.     {gray}Y88b  d88P Y8b.     888  888
 {blue}88888888 "Y8888  {gray} "Y8888P88  "Y8888  888  888
@@ -37,7 +33,7 @@ python {__import__('sys').version}
 time.sleep(1.5)
 
 # Define parameters and configurations
-parser = argparse.ArgumentParser(prog="LeGen", description="Uses AI to locally transcribes speech from media files, generating subtitle files, translates the generated subtitles, inserts them into the mp4 container, and burns them directly into video",
+parser = argparse.ArgumentParser(prog="LeGen", description="Uses AI toe locally transcribes speech from media files, generatingr subtitle files, translates the generated subtitles, inserts them into the mp4 container, and burns them directly into video",
                                 argument_default=True, allow_abbrev=True, add_help=True, usage='LeGen -i INPUT_PATH [other options]')
 parser.add_argument("-i", "--input_path",
                     help="Path to media files. Can be a folder containing files or an individual file", required=True, type=Path)
@@ -331,23 +327,33 @@ print(f"\n{gray}Scanning folders for completion status...{default}")
 def scan_folders(input_path, output_softsubs, output_hardsubs):
     completed_folders = {}
     
+    print(f"{gray}Checking folders in: {input_path}{default}")
+    
     for folder in Path(input_path).rglob('*'):
         if folder.is_dir():
             media_files = [f for f in folder.glob('*') 
-                         if f.suffix.lower() in (video_extensions | audio_extensions)]
+                        if f.suffix.lower() in (video_extensions | audio_extensions)]
             
             if not media_files:
                 continue
                 
+            total_files = len(media_files)
             completed = 0
+            
+            print(f"{gray}Checking folder: {folder.name} ({total_files} files){default}")
+            
             for media in media_files:
                 rel_path = media.relative_to(input_path)
-                if (file_utils.file_is_valid(Path(output_softsubs, rel_path.with_suffix('.mp4'))) or 
-                    file_utils.file_is_valid(Path(output_hardsubs, rel_path.with_suffix('.mp4')))):
+                output_soft = Path(output_softsubs, rel_path.with_suffix('.mp4'))
+                output_hard = Path(output_hardsubs, rel_path.with_suffix('.mp4'))
+                
+                if file_utils.file_is_valid(output_soft) or file_utils.file_is_valid(output_hard):
                     completed += 1
+                    
+            print(f"{gray}Folder {folder.name}: {completed}/{total_files} completed{default}")
             
-            if completed == len(media_files):
-                completed_folders[folder] = len(media_files)
+            if completed == total_files and completed > 0:
+                completed_folders[folder] = total_files
                 print(f"{green}• Folder '{folder.name}' - {completed} files completed{default}")
     
     return completed_folders
