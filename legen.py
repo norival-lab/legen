@@ -129,8 +129,8 @@ def process_media_files(args, whisper_model):
 
         rel_path = path.relative_to(args.input_path)
         
+        # Simplified progress display - remove folder remaining count
         print(f"{blue}Processing: {processed_files + 1}/{total_files} - Remaining: {total_files - (processed_files + 1)}{default}")
-        print(f"{gray}Current folder: {path.parent} (Files remaining: {total_files - (processed_files + 1)}){default}")
 
         with time_task(message_start=f"Processing {yellow}{rel_path.as_posix()}{default}\n", end="", message="⌚ Done in "):
             try:
@@ -344,18 +344,40 @@ def scan_folders(input_path, output_softsubs, output_hardsubs):
             
             for media in media_files:
                 rel_path = media.relative_to(input_path)
+                is_completed = False
                 
-                # Check for completed files
-                soft_out = Path(output_softsubs, rel_path.with_suffix('.mp4'))
-                hard_out = Path(output_hardsubs, rel_path.with_suffix('.mp4'))
+                # Check all possible output types
+                if not args.disable_softsubs:
+                    # Check MP4 with softsubs
+                    soft_mp4 = Path(output_softsubs, rel_path.with_suffix('.mp4'))
+                    if file_utils.file_is_valid(soft_mp4):
+                        is_completed = True
                 
-                if file_utils.file_is_valid(soft_out) or file_utils.file_is_valid(hard_out):
+                if not args.disable_hardsubs:
+                    # Check MP4 with hardsubs
+                    hard_mp4 = Path(output_hardsubs, rel_path.with_suffix('.mp4'))
+                    if file_utils.file_is_valid(hard_mp4):
+                        is_completed = True
+                
+                if not args.disable_srt:
+                    # Check SRT files in softsubs folder
+                    base_srt = Path(output_softsubs, rel_path.with_suffix('.srt'))
+                    lang_srt = Path(output_softsubs, rel_path.stem + f"_{args.input_lang}.srt")
+                    trans_srt = Path(output_softsubs, rel_path.stem + f"_{args.translate}.srt") if args.translate != "none" else None
+                    
+                    if file_utils.file_is_valid(base_srt) or file_utils.file_is_valid(lang_srt):
+                        if args.translate == "none" or file_utils.file_is_valid(trans_srt):
+                            is_completed = True
+                
+                if is_completed:
                     processed += 1
             
-            # Show completed folders
+            # Show folder status
             if processed == total_files and total_files > 0:
                 completed_folders[folder] = total_files
                 print(f"{green}✓ Folder '{folder.name}' ({processed}/{total_files} files){default}")
+            elif total_files > 0:
+                print(f"{gray}○ Folder '{folder.name}' - {processed}/{total_files} files{default}")
     
     return completed_folders
 
