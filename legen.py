@@ -331,6 +331,7 @@ def scan_folders(input_path, output_softsubs, output_hardsubs):
     
     print(f"{gray}Scanning folders for completion...{default}")
     
+    # Scan all subfolders
     for folder in Path(input_path).rglob('*'):
         if folder.is_dir():
             media_files = [f for f in folder.glob('*') 
@@ -342,42 +343,28 @@ def scan_folders(input_path, output_softsubs, output_hardsubs):
             total_files = len(media_files)
             processed = 0
             
+            # Check each media file's outputs
             for media in media_files:
                 rel_path = media.relative_to(input_path)
-                is_completed = False
                 
-                # Check all possible output types
-                if not args.disable_softsubs:
-                    # Check MP4 with softsubs
-                    soft_mp4 = Path(output_softsubs, rel_path.with_suffix('.mp4'))
-                    if file_utils.file_is_valid(soft_mp4):
-                        is_completed = True
+                # Required output files
+                srt_source = Path(output_softsubs, rel_path.stem + f"_{args.input_lang}.srt")
+                srt_translated = Path(output_softsubs, rel_path.stem + f"_{args.translate}.srt")
                 
-                if not args.disable_hardsubs:
-                    # Check MP4 with hardsubs
-                    hard_mp4 = Path(output_hardsubs, rel_path.with_suffix('.mp4'))
-                    if file_utils.file_is_valid(hard_mp4):
-                        is_completed = True
-                
-                if not args.disable_srt:
-                    # Check SRT files in softsubs folder
-                    base_srt = Path(output_softsubs, rel_path.with_suffix('.srt'))
-                    lang_srt = Path(output_softsubs, rel_path.stem + f"_{args.input_lang}.srt")
-                    trans_srt = Path(output_softsubs, rel_path.stem + f"_{args.translate}.srt") if args.translate != "none" else None
-                    
-                    if file_utils.file_is_valid(base_srt) or file_utils.file_is_valid(lang_srt):
-                        if args.translate == "none" or file_utils.file_is_valid(trans_srt):
-                            is_completed = True
-                
-                if is_completed:
-                    processed += 1
+                # Check completion conditions
+                if args.translate != "none":
+                    # Need both source and translated SRTs
+                    if file_utils.file_is_valid(srt_source) and file_utils.file_is_valid(srt_translated):
+                        processed += 1
+                else:
+                    # Only need source SRT
+                    if file_utils.file_is_valid(srt_source):
+                        processed += 1
             
-            # Show folder status
+            # Show status
             if processed == total_files and total_files > 0:
                 completed_folders[folder] = total_files
-                print(f"{green}✓ Folder '{folder.name}' ({processed}/{total_files} files){default}")
-            elif total_files > 0:
-                print(f"{gray}○ Folder '{folder.name}' - {processed}/{total_files} files{default}")
+                print(f"{green}✓ Folder '{folder.name}' - {processed}/{total_files} files complete{default}")
     
     return completed_folders
 
