@@ -328,17 +328,13 @@ print(f"\n{gray}Scanning folders for completion status...{default}")
 
 def scan_folders(input_path, output_softsubs, output_hardsubs):
     completed_folders = {}
-    print(f"\n{gray}Scanning input folders...{default}")
     
-    # Debug counters
-    total_media_files = 0
-    total_folders = 0
+    print(f"\n{gray}Scanning folders for completion...{default}")
     
     for folder in Path(input_path).rglob('*'):
         if not folder.is_dir():
             continue
             
-        total_folders += 1
         media_files = [f for f in folder.glob('*') 
                     if f.suffix.lower() in (video_extensions | audio_extensions)]
         
@@ -346,25 +342,14 @@ def scan_folders(input_path, output_softsubs, output_hardsubs):
             continue
         
         total_files = len(media_files)
-        total_media_files += total_files
         processed = 0
-        print(f"\n{gray}Checking folder: {folder.name} ({total_files} files){default}")
         
-        # Check each media file
+        # Silently check each file
         for media in media_files:
             rel_path = media.relative_to(input_path)
-            
-            # Define expected output files
             srt_source = Path(output_softsubs, rel_path.parent, rel_path.stem + f"_{args.input_lang}.srt")
             srt_translated = Path(output_softsubs, rel_path.parent, rel_path.stem + f"_{args.translate}.srt")
             
-            # Debug output
-            print(f"{gray}Checking: {rel_path.name}{default}")
-            print(f"Source SRT: {srt_source.exists()}")
-            if args.translate != "none":
-                print(f"Translated SRT: {srt_translated.exists()}")
-            
-            # Check if file is complete
             if args.translate != "none":
                 if file_utils.file_is_valid(srt_source) and file_utils.file_is_valid(srt_translated):
                     processed += 1
@@ -372,18 +357,12 @@ def scan_folders(input_path, output_softsubs, output_hardsubs):
                 if file_utils.file_is_valid(srt_source):
                     processed += 1
         
-        # Show folder status
+        # Only show folder completion status
         if processed == total_files and total_files > 0:
             completed_folders[folder] = total_files
             print(f"{green}✓ Folder complete: {folder.name} ({processed}/{total_files}){default}")
         else:
             print(f"{yellow}○ Folder incomplete: {folder.name} ({processed}/{total_files}){default}")
-    
-    # Summary
-    print(f"\n{gray}Scan complete:{default}")
-    print(f"Total folders: {total_folders}")
-    print(f"Total media files: {total_media_files}")
-    print(f"Completed folders: {len(completed_folders)}")
     
     return completed_folders
 
